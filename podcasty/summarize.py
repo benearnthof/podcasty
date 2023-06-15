@@ -9,7 +9,16 @@ from spacy.lang.en.stop_words import STOP_WORDS
 from string import punctuation
 from heapq import nlargest
 
+# imports for bert-extractive-summarizer
+from summarizer import Summarizer
 
+# chatgpt summary
+import openai
+
+openai.api_key = open("key.txt", "r").read().strip("\n")
+
+
+# TODO: refactor everything into one class that updates the Dict
 def spacy_summary(file: Dict, per=0.5) -> Dict:
     """
     Simple text summary with spacy.
@@ -52,8 +61,46 @@ def spacy_summary(file: Dict, per=0.5) -> Dict:
     final_summary = [word.text for word in summary]
     summary = "".join(final_summary)
     # output summary as text file to same temporary directory
-    out_path = Path(pth.parent / Path(str(pth.stem) + "_SUMMARY.txt"))
+    out_path = Path(pth.parent / Path(str(pth.stem) + "_SPACY_SUMMARY.txt"))
     with open(out_path, "w") as text_file:
-        text_file.write(transcription["text"])
-    file["txt"] = out_path
+        text_file.write(summary)
+    file["spacy_summary"] = out_path
+    return file
+
+
+def bert_summary(file: Dict, per=0.5) -> Dict:
+    pth = file["txt"]
+    assert pth.exists()
+    # TODO: make sure we can process multi line .txt files (tests)
+    with open(pth, "r") as text_file:
+        text = text_file.read().replace("\n", "")
+    # instantiate bert summarizer
+    # TODO: add options for summarizer, SBERT etc.
+    model = Summarizer("distilbert-base-uncased", hidden=[-1, -2], hidden_concat=True)
+    summary = model(text, ratio=0.5)
+    # output summary as text file to same temporary directory
+    out_path = Path(pth.parent / Path(str(pth.stem) + "_BERT_SUMMARY.txt"))
+    with open(out_path, "w") as text_file:
+        text_file.write(summary)
+    file["bert_summary"] = out_path
+    return file
+
+
+def chatgpt_summary(file: Dict, per=0.5) -> Dict:
+    pth = file["txt"]
+    assert pth.exists()
+    # TODO: make sure we can process multi line .txt files (tests)
+    with open(pth, "r") as text_file:
+        text = text_file.read().replace("\n", "")
+    # using the openai api
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": f"Summarize the following text: {text}"}],
+    )
+    # TOOD: set up paid account xd
+    summary = completion["choices"][0]["message"]["content"]
+    out_path = Path(pth.parent / Path(str(pth.stem) + "_CHATGPT_SUMMARY.txt"))
+    with open(out_path, "w") as text_file:
+        text_file.write(summary)
+    file["chatgpt_summary"] = out_path
     return file
