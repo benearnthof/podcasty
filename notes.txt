@@ -4,3 +4,7 @@ pip install --upgrade --force-reinstall "git+https://github.com/ytdl-org/youtube
 
 # ffmpeg problems on windows:
 https://stackoverflow.com/questions/73845566/openai-whisper-filenotfounderror-winerror-2-the-system-cannot-find-the-file
+
+# spacy download 
+python -m spacy download en_core_web_lg
+python -m spacy download en_core_web_sm

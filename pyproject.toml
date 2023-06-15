@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 youtube-dl = "^2021.12.17"
+spacy = "^3.5.3"
 
 
 [build-system]
