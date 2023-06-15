@@ -21,4 +21,4 @@ def get_mp3(url: str) -> Dict:
     }
     with YoutubeDL(options) as ydl:
         ydl.download([video_info["webpage_url"]])
-    return {"destination": Path(gettempdir(), filename)}
+    return {"mp3": Path(gettempdir(), filename)}
