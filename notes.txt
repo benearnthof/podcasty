@@ -8,3 +8,6 @@ https://stackoverflow.com/questions/73845566/openai-whisper-filenotfounderror-wi
 # spacy download 
 python -m spacy download en_core_web_lg
 python -m spacy download en_core_web_sm
+
+# investigate 
+https://github.com/matatonic/openai-summary

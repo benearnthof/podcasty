@@ -290,3 +290,7 @@ $RECYCLE.BIN/
 
 # ignore openai api key
 key.txt
+# ignore librespot credentials
+credentials.json
+# ignore output audio files
+*.wav

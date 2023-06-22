@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict
 from tempfile import gettempdir
 
-# TODO: remove this
+# TODO: switch to Downloader class
 from podcasty.download import get_mp3
 
 URL = "https://www.youtube.com/watch?v=qipKKBmY_LQ"
