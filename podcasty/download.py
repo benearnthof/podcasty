@@ -125,4 +125,5 @@ class Downloader(object):
             # TODO: add progress bar since downloads for long episodes are slow
             bytestream = stream.input_stream.stream().read(-1)
             file.write(bytestream)
+            file.close()
         return {"audio": Path(gettempdir(), filename)}
