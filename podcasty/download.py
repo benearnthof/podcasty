@@ -86,6 +86,7 @@ class Downloader(object):
         https://stackoverflow.com/questions/27473526/download-only-audio-from-youtube-video-using-youtube-dl-in-python-script
         Output is saved to temporary directory and all relevant metadata is returned as a Dict.
         """
+        # TODO: should be able to digest both 'id' and 'url'
         video_info = YoutubeDL().extract_info(url=url, download=False)
         filename = f"{video_info['title']+'.'+extension}"
         options = {
@@ -112,6 +113,7 @@ class Downloader(object):
         )
         access_token = session.tokens().get("playlist-read")
         stream_type = "track" if "track" in url.split("/") else "episode"
+        # TODO: should be able to digest both 'id' and 'url'
         id = url.split("/")[-1].split("?")[0]
         if stream_type == "track":
             stream_id = TrackId.from_uri(f"spotify:track:{id}")
