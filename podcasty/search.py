@@ -7,6 +7,7 @@ import os
 from requests import get
 from typing import List, Dict
 from dotenv import load_dotenv
+from tqdm import tqdm
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -48,6 +49,7 @@ class WebSearch(object):
             if self.provider == "YOUTUBE"
             else spotipy.Spotify(auth_manager=SpotifyOAuth(scope=self.scope))
         )
+        self.responses = []
 
     def search(self):
         """
@@ -55,15 +57,15 @@ class WebSearch(object):
         Extends the results list and then returns it.
         """
         if self.provider == "SPOTIFY":
-            responses = [
+            self.responses = [
                 self.spotify.search(q=query, limit=self.limit, type=self.searchtype)
-                for query in self.queries
+                for query in tqdm(self.queries)
             ]
-            results = self.process_responses(responses)
-            return results
         elif self.provider == "YOUTUBE":
-            responses = [self.youtube_search(query) for query in self.queries]
-            results = self.process_responses(responses)
+            self.responses = [
+                self.youtube_search(query) for query in tqdm(self.queries)
+            ]
+        results = self.process_responses(self.responses)
         return results
 
     def youtube_search(self, query: str) -> Dict:
@@ -95,6 +97,7 @@ class WebSearch(object):
                     "url": res["webpage_url"],
                 }
                 for res in responses
+                if res
             ]
         elif self.provider == "SPOTIFY" and self.searchtype == "episode":
             output = [
@@ -108,5 +111,6 @@ class WebSearch(object):
                     "url": res["episodes"]["items"][0]["external_urls"]["spotify"],
                 }
                 for res in responses
+                if res
             ]
         return output
