@@ -11,3 +11,27 @@ python -m spacy download en_core_web_sm
 
 # investigate 
 https://github.com/matatonic/openai-summary
+
+
+# total cost of summarizing all Joe Rogan Episodes with ChatGPT:
+~ 12500 words per hour
+750 words = 1000 tokens
+~ 17000 tokens per hour
+6 cents per 1k tokens 
+6*17 = 102 cents
+conservative estimate: 1.05 dollars per hour of podcast
+5811 hours of joe rogan so far
+$6101.55 to summarize all joe rogan transcripts with the largest openai model
+$3050 to summarize with 8k context window, would need to reprocess summary parts 
+
+chatgpt 16k context: 
+$0.003 per 1k tokens
+$0.051 per hour of podcast
+$300 to summarize all of JRE with chatgpt (gpt3.5 turbo)
+probably a little more since most episodes would have to be processed in parts
+
+need to test prompting to figure out the best quality
+prompts also take up a small amount of tokens
+
+# https://gpt4all.io/index.html
+# runs on cpu, should be usable?

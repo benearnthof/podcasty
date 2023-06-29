@@ -97,9 +97,10 @@ class WebSearch(object):
                     "url": res["webpage_url"],
                 }
                 for res in responses
-                if res
+                if res  # check if response is not empty
             ]
         elif self.provider == "SPOTIFY" and self.searchtype == "episode":
+            # TODO: Handle self.limit > 1 => find best match in response
             output = [
                 {
                     "id": res["episodes"]["items"][0]["id"],
@@ -111,6 +112,6 @@ class WebSearch(object):
                     "url": res["episodes"]["items"][0]["external_urls"]["spotify"],
                 }
                 for res in responses
-                if res
+                if res  # check if response is not empty
             ]
         return output

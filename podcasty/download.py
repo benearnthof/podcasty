@@ -58,6 +58,7 @@ class Downloader(object):
             elif "spotify" in url.split("."):
                 return "SPOTIFY"
             else:
+                print(url)
                 raise NotImplementedError(f"Source for {url} not yet implemented.")
 
         return [infer(url) for url in urls]
@@ -123,9 +124,20 @@ class Downloader(object):
             stream_id, VorbisOnlyAudioQuality(AudioQuality.VERY_HIGH), False, None
         )
         # https://github.com/ozora-ogino/spotify_dlx/blob/main/spotify_dlx/utils.py
+        # https://github.com/kokarare1212/librespot-python/issues/101
         with open(Path(gettempdir(), filename), "wb") as file:
             # TODO: add progress bar since downloads for long episodes are slow
             bytestream = stream.input_stream.stream().read(-1)
             file.write(bytestream)
             file.close()
         return {"audio": Path(gettempdir(), filename)}
+
+
+def bulk_dl(url, name):
+    dl = Downloader(urls=[url], filename=name)
+    metadata = dl.download()
+    return metadata
+
+
+def debug(one, two):
+    return {"one": one, "two": two}
