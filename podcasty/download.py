@@ -130,6 +130,7 @@ class Downloader(object):
             bytestream = stream.input_stream.stream().read(-1)
             file.write(bytestream)
             file.close()
+        # session.close()  # added this to test if this fixes problems with parallel downloads
         return {"audio": Path(gettempdir(), filename)}
 
 

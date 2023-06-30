@@ -252,6 +252,7 @@ from requests import get
 from typing import List, Dict
 from dotenv import load_dotenv
 from tqdm import tqdm
+from math import floor
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -260,6 +261,52 @@ scope = "user-library-read"
 load_dotenv(".env")
 
 spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+
+#### Pull Metadata for all songs liked by a user
+liked_songs_metadata = spotify.current_user_saved_tracks(limit=1)
+batch_size = 50
+total = liked_songs_metadata["total"]
+n_full_batches = floor(total / batch_size)  # 50 is api limit
+remainder = total % batch_size
+assert remainder + n_full_batches * batch_size == total
+liked_songs = []
+for index in tqdm(range(0, n_full_batches)):
+    response = spotify.current_user_saved_tracks(
+        limit=batch_size, offset=index * batch_size
+    )
+    liked_songs.extend(response["items"])
+# add the remaining tracks
+rest = spotify.current_user_saved_tracks(limit=remainder, offset=n_full_batches)
+liked_songs.extend(rest["items"])
+assert len(liked_songs) == total
+# extracting relevant information
+track = liked_songs[-1]
+
+songdata = [
+    {
+        "artist": song["track"]["artists"][0]["name"],
+        "name": song["track"]["name"],
+        "uri": song["track"]["uri"],
+        "url": song["track"]["external_urls"]["spotify"],
+    }
+    for song in liked_songs
+]
+
+with open("SPOTIFY_LIKED_SONGS.pickle", "wb") as handle:
+    pickle.dump(songdata, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+with open("SPOTIFY_LIKED_SONGS.pickle", "rb") as handle:
+    songdata = pickle.load(handle)
+
+from collections import Counter
+
+artists = [song["artist"] for song in songdata]
+names = [song["name"] for song in songdata]
+uris = [song["uri"] for song in songdata]
+out = Counter(names)
+vals = out.values()
+uniques = list(set(uris))
+unique_urls = list(set([song["url"] for song in songdata]))
 
 
 test = spotify.show_episodes(show_id="4rOoJ6Egrf8K2IrywzwOMk", limit=1)
@@ -286,42 +333,44 @@ with open("JRE_SPOTIFY_COMPLETE.pickle", "wb") as handle:
 with open("JRE_SPOTIFY_COMPLETE.pickle", "rb") as handle:
     jre = pickle.load(handle)
 
-jre_uris = [ep["items"][0]["uri"] for ep in jre if ep["items"]]
-jre_names = [ep["items"][0]["name"] for ep in jre if ep["items"]]
-jre_urls = [ep["items"][0]["external_urls"]["spotify"] for ep in jre if ep["items"]]
-
 
 with open("jre_uris.txt", "w") as f:
     for line in jre_uris:
         f.write(f"{line}\n")
 
 
-if __name__ == "__main__":
-    import pickle
-    import multiprocessing
-    from podcasty.download import Downloader, bulk_dl, debug
+import pickle
+import multiprocessing
+from podcasty.download import Downloader, bulk_dl, debug
+from tqdm import tqdm
 
-    with open("JRE_SPOTIFY_COMPLETE.pickle", "rb") as handle:
-        jre = pickle.load(handle)
-    jre_uris = [ep["items"][0]["uri"] for ep in jre if ep["items"]]
-    jre_names = [ep["items"][0]["name"] for ep in jre if ep["items"]]
-    jre_urls = [ep["items"][0]["external_urls"]["spotify"] for ep in jre if ep["items"]]
-    with multiprocessing.Pool(processes=1) as pool:
-        results = pool.starmap(bulk_dl, zip(jre_urls, jre_names))
-    print(results)
+with open("JRE_SPOTIFY_COMPLETE.pickle", "rb") as handle:
+    jre = pickle.load(handle)
 
-import itertools
-
-test = [itertools.starmap(jre_urls, jre_names)]
-# doesnt work with windows 10
+jre_uris = [ep["items"][0]["uri"] for ep in jre if ep["items"]]
+jre_names = [ep["items"][0]["name"] for ep in jre if ep["items"]]
+jre_urls = [ep["items"][0]["external_urls"]["spotify"] for ep in jre if ep["items"]]
 
 from joblib import Parallel, delayed
 
-urls = jre_urls[113:]
-names = jre_names[113:]
+urls = jre_urls[895:]
+names = jre_names[895:]
+names = [name.replace('"', "") for name in names]
 
-res = Parallel(n_jobs=8)(delayed(bulk_dl)(url, name) for url, name in zip(urls, names))
+all(['"' not in entry for entry in names])
 
+# res = [bulk_dl(url, name) for url, name in tqdm(zip(urls, names), total=len(urls))]
+
+res = Parallel(n_jobs=2, prefer="processes", timeout=999999)(
+    delayed(bulk_dl)(url, name) for url, name in zip(urls, names)
+)
+
+
+# todo: adress IOError if response is empty
+# todo: adress escape character and quotes problems
+# https://github.com/joblib/joblib/issues/1002 os errors on windows
+# "C:\Users\Bene\AppData\Local\pypoetry\Cache\virtualenvs\podcasty-ne2AcSAH-py3.10\lib\site-packages\librespot\mercury.py", line 180,
+# seems to be caused by empty queue object? should only be an issue for parallel processing
 # 56 mbps
 
 
@@ -333,3 +382,5 @@ def bulk_dl(url, name):
 
 for url, name in tqdm(zip(urls, names), total=len(urls)):
     _ = bulk_dl(url, name)
+
+Parallel()
