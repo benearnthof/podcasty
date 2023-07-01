@@ -303,6 +303,7 @@ from collections import Counter
 artists = [song["artist"] for song in songdata]
 names = [song["name"] for song in songdata]
 uris = [song["uri"] for song in songdata]
+urls = [song["url"] for song in songdata]
 out = Counter(names)
 vals = out.values()
 uniques = list(set(uris))
@@ -340,9 +341,10 @@ with open("jre_uris.txt", "w") as f:
 
 
 import pickle
-import multiprocessing
-from podcasty.download import Downloader, bulk_dl, debug
+from joblib import Parallel, delayed
 from tqdm import tqdm
+
+from podcasty.download import Downloader
 
 with open("JRE_SPOTIFY_COMPLETE.pickle", "rb") as handle:
     jre = pickle.load(handle)
@@ -351,36 +353,39 @@ jre_uris = [ep["items"][0]["uri"] for ep in jre if ep["items"]]
 jre_names = [ep["items"][0]["name"] for ep in jre if ep["items"]]
 jre_urls = [ep["items"][0]["external_urls"]["spotify"] for ep in jre if ep["items"]]
 
-from joblib import Parallel, delayed
-
-urls = jre_urls[895:]
-names = jre_names[895:]
+urls = jre_urls[1999:]
+names = jre_names[1999:]
+names = [name.replace("?", "") for name in names]
+names = [name.replace("(", "") for name in names]
+names = [name.replace(")", "") for name in names]
 names = [name.replace('"', "") for name in names]
+names = [name.replace("w/", "with") for name in names]
+names = [name.replace("*", "") for name in names]
 
-all(['"' not in entry for entry in names])
+import re
+final_names = [re.sub(r"[^a-zA-Z0-9]+", ' ', name) for name in names]
+
+assert all(['"' not in entry for entry in names])
+assert all(["/" not in entry for entry in names])
+assert all(["?" not in entry for entry in names])
+assert all(["(" not in entry for entry in names])
+assert all([")" not in entry for entry in names])
 
 # res = [bulk_dl(url, name) for url, name in tqdm(zip(urls, names), total=len(urls))]
 
-res = Parallel(n_jobs=2, prefer="processes", timeout=999999)(
-    delayed(bulk_dl)(url, name) for url, name in zip(urls, names)
-)
+dl = Downloader(urls[494:], final_names[494:])
+# TODO: sanitize links that can no longer be downloaded in region
+metadata = dl.download()
 
-
-# todo: adress IOError if response is empty
-# todo: adress escape character and quotes problems
-# https://github.com/joblib/joblib/issues/1002 os errors on windows
-# "C:\Users\Bene\AppData\Local\pypoetry\Cache\virtualenvs\podcasty-ne2AcSAH-py3.10\lib\site-packages\librespot\mercury.py", line 180,
-# seems to be caused by empty queue object? should only be an issue for parallel processing
-# 56 mbps
+https://open.spotify.com/track/0XgpiStoxq1IJncYlPrvZ5?si=444a1730596b4571
 
 
 def bulk_dl(url, name):
-    dl = Downloader(urls=[url], filename=name)
+    dl = Downloader(urls=[url], filenames=[name])
     metadata = dl.download()
     return metadata
 
 
-for url, name in tqdm(zip(urls, names), total=len(urls)):
-    _ = bulk_dl(url, name)
-
-Parallel()
+res = Parallel(n_jobs=4, prefer="processes", timeout=999999)(
+    delayed(bulk_dl)(url, name) for url, name in tqdm(zip(urls, names), total=len(urls))
+)
