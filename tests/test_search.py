@@ -295,20 +295,6 @@ songdata = [
 with open("SPOTIFY_LIKED_SONGS.pickle", "wb") as handle:
     pickle.dump(songdata, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-with open("SPOTIFY_LIKED_SONGS.pickle", "rb") as handle:
-    songdata = pickle.load(handle)
-
-from collections import Counter
-
-artists = [song["artist"] for song in songdata]
-names = [song["name"] for song in songdata]
-uris = [song["uri"] for song in songdata]
-urls = [song["url"] for song in songdata]
-out = Counter(names)
-vals = out.values()
-uniques = list(set(uris))
-unique_urls = list(set([song["url"] for song in songdata]))
-
 
 test = spotify.show_episodes(show_id="4rOoJ6Egrf8K2IrywzwOMk", limit=1)
 
@@ -355,15 +341,37 @@ jre_urls = [ep["items"][0]["external_urls"]["spotify"] for ep in jre if ep["item
 
 urls = jre_urls[1999:]
 names = jre_names[1999:]
+
+import pickle
+from joblib import Parallel, delayed
+from tqdm import tqdm
+
+from podcasty.download import Downloader
+
+with open("SPOTIFY_LIKED_SONGS.pickle", "rb") as handle:
+    songdata = pickle.load(handle)
+
+from collections import Counter
+
+artists = [song["artist"] for song in songdata]
+names = [song["name"] for song in songdata]
+uris = [song["uri"] for song in songdata]
+urls = [song["url"] for song in songdata]
+out = Counter(names)
+vals = out.values()
+uniques = list(set(uris))
+unique_urls = list(set([song["url"] for song in songdata]))
+
 names = [name.replace("?", "") for name in names]
 names = [name.replace("(", "") for name in names]
 names = [name.replace(")", "") for name in names]
 names = [name.replace('"', "") for name in names]
 names = [name.replace("w/", "with") for name in names]
 names = [name.replace("*", "") for name in names]
-
+# TODO: Correctly encode cyrillic and other scripts
 import re
-final_names = [re.sub(r"[^a-zA-Z0-9]+", ' ', name) for name in names]
+
+final_names = [re.sub(r"[^a-zA-Z0-9]+", " ", name) for name in names]
 
 assert all(['"' not in entry for entry in names])
 assert all(["/" not in entry for entry in names])
@@ -373,11 +381,13 @@ assert all([")" not in entry for entry in names])
 
 # res = [bulk_dl(url, name) for url, name in tqdm(zip(urls, names), total=len(urls))]
 
-dl = Downloader(urls[494:], final_names[494:])
-# TODO: sanitize links that can no longer be downloaded in region
-metadata = dl.download()
+urls = urls[1936:]
+final_names = final_names[1936:]
+# TODO: integrate album names into downloader @_@
 
-https://open.spotify.com/track/0XgpiStoxq1IJncYlPrvZ5?si=444a1730596b4571
+dl = Downloader(urls[:], final_names[:])
+# TODO: sanitize links that can no longer be downloaded in region
+dl.download()
 
 
 def bulk_dl(url, name):
@@ -386,6 +396,7 @@ def bulk_dl(url, name):
     return metadata
 
 
-res = Parallel(n_jobs=4, prefer="processes", timeout=999999)(
-    delayed(bulk_dl)(url, name) for url, name in tqdm(zip(urls, names), total=len(urls))
+res = Parallel(n_jobs=2, prefer="processes", timeout=999999)(
+    delayed(bulk_dl)(url, name)
+    for url, name in tqdm(zip(urls, final_names), total=len(urls))
 )

@@ -141,7 +141,8 @@ class Downloader(object):
         return {"audio": Path(gettempdir(), filename)}
 
 
-def bulk_dl(urls: List[str], names: List[str]):
-    dl = Downloader(urls, names)
+def parallel_dl_wrapper(url: str, name: str):
+    """Simple Wrapper to interface with joblib::Parallel"""
+    dl = Downloader([url], [name])
     metadata = dl.download()
     return metadata
