@@ -44,7 +44,7 @@ def convert_mp4(files: List[str]):
         raise RuntimeError(f"Failed to load video: {e.stderr.decode()}") from e
 
 
-convert_mp4(files=mp4)
+# convert_mp4(files=mp4)
 
 # res = Parallel(n_jobs=2, prefer="processes", timeout=999999)(
 #     delayed(run)(cmd, capture_output=True, check=True).stdout
@@ -72,4 +72,32 @@ def convert_mp3(files: List[str]):
         raise RuntimeError(f"Failed to load video: {e.stderr.decode()}") from e
 
 
-convert_mp3(files=mp3)
+# convert_mp3(files=mp3)
+
+
+def convert_numpy(files: List[str], sr: int = SAMPLE_RATE):
+    """
+    Utility to convert audio to numpy so downstream processing does not depend on ffmpeg.
+    """
+    names = [file[:-3] for file in files]
+    commands = []
+    for file, name in tqdm(zip(files, names), total=len(files)):
+        commands.append(
+            [
+                "ffmpeg",
+                "-nostdin",
+                "-threads",
+                "0",
+                "-i",
+                file,
+                "-f",
+                "s16le",
+                "-ac",
+                "1",
+                "-acodec",
+                "pcm_s16le",
+                "-ar",
+                str(sr),
+                "-",
+            ]
+        )
