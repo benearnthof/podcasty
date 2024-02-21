@@ -81,7 +81,7 @@ def convert_numpy(files: List[str], sr: int = SAMPLE_RATE):
     """
     names = [file[:-3] for file in files]
     commands = []
-    for file, name in tqdm(zip(files, names), total=len(files)):
+    for file in tqdm(files):
         commands.append(
             [
                 "ffmpeg",
@@ -101,3 +101,17 @@ def convert_numpy(files: List[str], sr: int = SAMPLE_RATE):
                 "-",
             ]
         )
+    print("Generated Commands.")
+    print("Converting Audio to Numpy...")
+    for file, name, cmd in tqdm(zip(files, names, commands), total=len(files)):
+        try:
+            buffer = run(cmd, capture_output=True, check=True).stdout
+            tensor = np.frombuffer(buffer, np.int16).flatten().astype(np.float32) / 32768.0
+            np.save(f"{name}npy", tensor)
+        except CalledProcessError as e:
+            raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}")
+    print(f"Saved {len(files)} tensors to disk.")
+
+convert_numpy(files=files)
+
+# data = np.load(f"{name}npy")
